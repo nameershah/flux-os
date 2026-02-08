@@ -28,10 +28,9 @@ Result: the agent **plans from intent**, **acts across vendors**, and **verifies
 
 | Layer | Technology |
 |-------|------------|
-| API | FastAPI (Python), exported as `app` for Vercel |
+| API | FastAPI (Python) |
 | Frontend | Next.js 14, TypeScript, Tailwind CSS, Framer Motion |
 | AI | OpenAI GPT-4o (intent parsing) |
-| Runtime | Vercel monorepo, 60s serverless timeout |
 
 - **Backend:** `backend/main.py` — FastAPI app, health at `/`, routes under `/api`.
 - **Services:** Intent + scoring in `services/ai_engine.py`; orchestration + payment in `routers/procurement.py`.
@@ -51,14 +50,6 @@ Every decision is evaluated against a multi-dimensional **Flux State**:
 | **Strategy** | User choice drives re-ranking and AI reasoning labels (e.g. “Best Price”, “Fastest Delivery”). |
 
 The UI exposes retailer badges, AI reasoning, and optional telemetry (model, latency, tokens).
-
----
-
-## Deployment (Vercel)
-
-- **Builds:** Backend → `@vercel/python` (`backend/main.py`, `maxDuration: 60`). Frontend → `@vercel/next` (`frontend/package.json`).
-- **Rewrites:** `/api/*` → FastAPI; everything else → Next.js. Single deployment, single origin.
-- **Env:** `OPENAI_API_KEY` set in Vercel; FastAPI app exported as `app` for correct mounting.
 
 ---
 
@@ -92,8 +83,8 @@ In the dashboard: enter intent, budget, and deadline → choose strategy → **I
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Health check |
-| POST | `/api/orchestrate` | Orchestration; body: `UserRequest`; returns `options` + `telemetry` (60s timeout) |
-| POST | `/api/execute_payment` | Simulated payment fan-out; body: cart; returns `status` + `logs` (60s timeout) |
+| POST | `/api/orchestrate` | Orchestration; body: `UserRequest`; returns `options` + `telemetry` |
+| POST | `/api/execute_payment` | Simulated payment fan-out; body: cart; returns `status` + `logs` |
 
 ---
 
@@ -102,14 +93,13 @@ In the dashboard: enter intent, budget, and deadline → choose strategy → **I
 ```
 arcflow-commerce-agent/
 ├── backend/
-│   ├── main.py              # FastAPI app (app export for Vercel)
+│   ├── main.py              # FastAPI app
 │   ├── models/schemas.py
 │   ├── routers/procurement.py
 │   ├── services/ai_engine.py
 │   ├── utils/logger.py
 │   └── requirements.txt
 ├── frontend/                # Next.js 14 app
-├── vercel.json
 └── README.md
 ```
 
