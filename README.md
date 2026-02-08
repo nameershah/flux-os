@@ -4,6 +4,26 @@
 
 ---
 
+## Demo
+
+<table>
+  <tr>
+    <td width="50%">
+      <strong>Dashboard → Intent → Cart</strong><br/>
+      <img src="assets/demo.gif" alt="Flux OS workflow: enter intent, set budget, INITIATE, review cart" width="100%"/>
+    </td>
+    <td width="50%">
+      <strong>Cart & AI Reasoning</strong><br/>
+      <img src="assets/cart-screenshot.png" alt="Cart view with retailer badges and AI reasoning" width="100%"/>
+    </td>
+  </tr>
+</table>
+
+> **How to add your own:** Run the app locally, capture screenshots (PNG) or record a short GIF of the flow. Save to `assets/demo.gif` and `assets/cart-screenshot.png`.  
+> **Tools:** [Kap](https://getkap.co/) or [LICEcap](https://www.cockos.com/licecap/) for GIFs on Mac.
+
+---
+
 ## Overview
 
 Flux OS turns fragmented multi-retailer procurement into a single agentic workflow. Submit natural-language intent (e.g. *"hackathon kit: snacks, badges, prizes"*), set budget and strategy; the system parses intent, scouts Amazon / Walmart / TechData, ranks by your constraints, and simulates a unified checkout with audit logs.
@@ -92,6 +112,7 @@ In the dashboard: enter intent, budget, and deadline → choose strategy → **I
 
 ```
 arcflow-commerce-agent/
+├── assets/                 # Screenshots & demo GIFs for README
 ├── backend/
 │   ├── main.py              # FastAPI app
 │   ├── models/schemas.py
