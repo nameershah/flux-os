@@ -2,6 +2,10 @@
 
 **One intent. One budget. One optimized cart. One orchestrated settlement—with on-chain proof.**
 
+**Demo:** [Watch the demo video](ADD_YOUR_VIDEO_LINK_HERE) — *Replace `ADD_YOUR_VIDEO_LINK_HERE` with your YouTube, Loom, or other demo URL when ready.*
+
+---
+
 Flux OS is the cognitive layer for autonomous commerce: multi-retailer procurement, AI-driven ranking, simulated checkout, and **deterministic on-chain settlement** via the ArcFlow Safety Kernel and Circle’s Arc Testnet. No LLM ever touches a private key.
 
 ---
@@ -96,9 +100,22 @@ flowchart LR
 
 ---
 
-## Quick Start
+## Prerequisites
 
-**Required:** At least one of `OPENAI_API_KEY` or `GROQ_API_KEY` for text intent parsing. `GEMINI_API_KEY` for document (image/PDF) upload. Without keys, the backend uses fallback categories only.
+Before running Flux OS, ensure you have:
+
+| Requirement | Details |
+|-------------|---------|
+| **Node.js** | v18+ (for Next.js frontend). Check with `node -v`. |
+| **npm** | Comes with Node. Check with `npm -v`. |
+| **Python** | 3.9+ (for FastAPI backend). Check with `python3 --version`. |
+| **API keys** | At least one set for full behavior: **Intent (text):** `OPENAI_API_KEY` or `GROQ_API_KEY`. **Document (image/PDF):** `GEMINI_API_KEY`. Optional: `PAYMENT_PRIVATE_KEY` for real Arc Testnet settlement (otherwise sandbox with mock tx hashes). |
+
+Create a `.env` file in `backend/` (see Quick Start) or export the variables in your shell. Without keys, the app still runs using fallback categories.
+
+---
+
+## Quick Start
 
 ```bash
 # Backend
