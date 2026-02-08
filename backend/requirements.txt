@@ -1,4 +1,4 @@
-# Flux OS API — production dependencies (minimal set)
+# Flux OS API — production dependencies (multimodal + low-latency)
 fastapi==0.128.4
 uvicorn==0.39.0
 openai==2.17.0
@@ -6,3 +6,5 @@ pydantic==2.12.5
 python-dotenv==1.2.1
 python-multipart==0.0.20
 web3>=7.0.0
+google-generativeai
+groq

@@ -2,16 +2,15 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv, find_dotenv
-# FIX: Explicitly import the router instance from the procurement file
 from routers.procurement import router as procurement_router
 from utils.logger import setup_logging
 
 # Load Environment Variables
 load_dotenv(find_dotenv())
 
-# Debugging logs for terminal
-if not os.getenv("OPENAI_API_KEY"):
-    print("⚠️ WARNING: OPENAI_API_KEY not found in environment!")
+# Boot logs for terminal verification
+if not os.getenv("OPENAI_API_KEY") or not os.getenv("GEMINI_API_KEY"):
+    print("⚠️ WARNING: Missing API Keys (OpenAI or Gemini) in .env!")
 else:
     print("✅ Flux OS: AI Engine Keys Loaded Successfully.")
 
@@ -23,7 +22,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Standard Middleware
+# Standard Middleware for Frontend connectivity
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -32,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health Check
+# Root Health Check
 @app.get("/")
 async def health_check():
     return {
@@ -41,5 +40,5 @@ async def health_check():
         "kernel": "ArcFlow Deterministic"
     }
 
-# Core API Routes - This mounts everything in procurement.py under /api
+# Registered API Routes
 app.include_router(procurement_router, prefix="/api")

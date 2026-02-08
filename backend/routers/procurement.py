@@ -3,7 +3,7 @@ import logging
 import random
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from models.schemas import ProcurementOption, UserRequest
 from services import ai_engine
 from services.payment_solver import execute_payment as execute_payment_onchain
@@ -94,16 +94,35 @@ async def orchestrate_procurement(intent_request: UserRequest):
         logging.exception("Orchestration Error: %s", e)
         raise HTTPException(status_code=503, detail=str(e))
 
+@router.post("/upload_intent")
+async def upload_document_intent(
+    strategy: str = "balanced", 
+    budget: float = 1000.0,
+    file: UploadFile = File(...)
+):
+    """Multimodal Procurement: Extract intent from PDF/Image via Gemini."""
+    try:
+        content = await file.read()
+        extracted_prompt = await ai_engine.extract_intent_from_doc(content, file.content_type)
+        
+        intent_request = UserRequest(
+            prompt=extracted_prompt, 
+            budget=budget, 
+            strategy=strategy
+        )
+        return await _run_orchestration(intent_request)
+    except Exception as e:
+        logging.exception("File Processing Error: %s", e)
+        raise HTTPException(status_code=400, detail="Could not process document.")
+
 @router.post("/execute_payment")
 async def execute_secure_payment(cart: list[dict]):
-    is_live = os.getenv("PAYMENT_PRIVATE_KEY") is not None
     try:
         loop = asyncio.get_event_loop()
         result = await asyncio.wait_for(
             loop.run_in_executor(None, lambda: execute_payment_onchain(cart)),
             timeout=ORCHESTRATION_TIMEOUT_SEC,
         )
-        logging.info(f"Settlement successful. Mode: {'LIVE' if is_live else 'SANDBOX'}")
         return result
     except PolicyViolation as e:
         raise HTTPException(status_code=403, detail=f"Policy Violation: {e}")
