@@ -2,8 +2,6 @@
 
 **One intent. One budget. One optimized cart. One orchestrated settlement—with on-chain proof.**
 
-**Demo:** [Watch the demo video](ADD_YOUR_VIDEO_LINK_HERE) — *Replace `ADD_YOUR_VIDEO_LINK_HERE` with your YouTube, Loom, or other demo URL when ready.*
-
 ---
 
 Flux OS is the cognitive layer for autonomous commerce: multi-retailer procurement, AI-driven ranking, simulated checkout, and **deterministic on-chain settlement** via the ArcFlow Safety Kernel and Circle’s Arc Testnet. No LLM ever touches a private key.
