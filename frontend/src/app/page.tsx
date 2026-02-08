@@ -28,6 +28,7 @@ export default function FluxOSDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const [executing, setExecuting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [transactionHashes, setTransactionHashes] = useState<string[]>([]);
   const [devMode, setDevMode] = useState(false);
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [progressStep, setProgressStep] = useState(0);
@@ -129,24 +130,30 @@ export default function FluxOSDashboard() {
     try {
       const response = await axios.post(`${API_BASE}/api/execute_payment`, options);
       const auditLogs = response.data?.logs ?? [];
+      const hashes = response.data?.transaction_hashes ?? [];
 
       auditLogs.forEach((log: string, index: number) => {
         setTimeout(() => addLog(log), index * 350);
       });
 
       setTimeout(() => {
+        setTransactionHashes(hashes);
         setSuccess(true);
         addLog(`TRANSACTION FINALIZED.`);
         setExecuting(false);
       }, auditLogs.length * 350 + 600);
-    } catch {
-      addLog(`CRITICAL FAILURE: Payment Gateway Reject.`);
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) && err.response?.status === 403
+        ? `Policy Violation: ${(err.response?.data as { detail?: string })?.detail ?? "Forbidden"}`
+        : "CRITICAL FAILURE: Payment Gateway Reject.";
+      addLog(msg);
       setExecuting(false);
     }
   }, [options, addLog]);
 
   const handleReset = useCallback(() => {
     setSuccess(false);
+    setTransactionHashes([]);
     setOptions([]);
     setPrompt("");
     setLogs([]);
@@ -244,6 +251,7 @@ export default function FluxOSDashboard() {
               loading={loading}
               executing={executing}
               success={success}
+              transactionHashes={transactionHashes}
               strategy={strategy}
               onStrategyChange={setStrategy}
               onExecute={handleExecution}

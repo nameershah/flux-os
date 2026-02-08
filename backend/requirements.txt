@@ -5,3 +5,4 @@ openai==2.17.0
 pydantic==2.12.5
 python-dotenv==1.2.1
 python-multipart==0.0.20
+web3>=7.0.0

@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import random
-import uuid
 
 from fastapi import APIRouter, HTTPException
 from models.schemas import ProcurementOption, UserRequest
 from services import ai_engine
+from services.payment_solver import execute_payment as execute_payment_onchain
+from services.payment_solver import PolicyViolation
 
 ORCHESTRATION_TIMEOUT_SEC = 60
 
@@ -128,39 +129,32 @@ async def orchestrate_procurement(intent_request: UserRequest):
 
 @router.post("/execute_payment")
 async def execute_secure_payment(cart: list[dict]):
-    """Simulate orchestrated payment fan-out to multiple retailers (Rule 2.5). 60s timeout."""
+    """
+    Execute on-chain settlement via ArcFlow Safety Kernel (Circle/Arc Testnet).
+    Enforces WHITELISTED_MERCHANTS and MAX_BUDGET_CAP; returns 403 on policy violation.
+    Returns transaction_hashes for On-Chain Proof of Settlement.
+    """
     try:
+        loop = asyncio.get_event_loop()
         result = await asyncio.wait_for(
-            _run_payment_fanout(cart),
+            loop.run_in_executor(None, lambda: execute_payment_onchain(cart)),
             timeout=ORCHESTRATION_TIMEOUT_SEC,
         )
         return result
+    except PolicyViolation as e:
+        logging.warning("flux_payment_policy_violation: %s", e)
+        raise HTTPException(
+            status_code=403,
+            detail=f"Policy Violation: {e}",
+        ) from e
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Payment fan-out timeout.")
+    except RuntimeError as e:
+        logging.exception("flux_payment_runtime: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway unavailable. Check PAYMENT_PRIVATE_KEY and Arc RPC.",
+        ) from e
     except Exception as e:
         logging.exception("flux_payment_error: %s", e)
-        raise HTTPException(status_code=503, detail="Payment orchestration failed.")
-
-
-async def _run_payment_fanout(cart: list[dict]) -> dict:
-    """Execute simulated fan-out to retailers; returns audit logs."""
-    audit_logs = []
-    audit_logs.append("🔐 Authenticating Secure Gateway...")
-    audit_logs.append("  > Gateway: SANDBOX MOCK — Policy Check PASSED")
-    audit_logs.append("")
-
-    for idx, item in enumerate(cart):
-        tx_id = str(uuid.uuid4())[:8]
-        vendor = item.get("vendor_name", "Vendor")
-        order_num = 100 + idx * 51 + (hash(vendor) % 50)
-        audit_logs.append(f"📦 Placing Order #{order_num} at {vendor}...")
-        audit_logs.append(f"  > Item: {item.get('name', 'Unknown')}")
-        audit_logs.append(f"  > Amount: ${item.get('price', 0):.2f}")
-        audit_logs.append("  > Policy Check: PASSED")
-        audit_logs.append(f"  > Tx Hash: 0x{tx_id}...")
-        audit_logs.append("")
-        logging.info("flux_tx_finalized", extra={"tx_id": tx_id, "vendor": vendor})
-
-    audit_logs.append("✅ Syncing Logistics...")
-    audit_logs.append("All orders confirmed. Delivery tracking active.")
-    return {"status": "success", "logs": audit_logs}
+        raise HTTPException(status_code=503, detail="Payment orchestration failed.") from e

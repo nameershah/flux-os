@@ -121,13 +121,14 @@ def test_orchestrate_empty_prompt_with_zero_budget_returns_empty(client, mock_pa
 
 
 def test_execute_payment_success(client):
-    """Execute payment with a cart returns success and logs."""
+    """Execute payment with whitelisted cart returns success, logs, and transaction_hashes."""
     cart = [
         {
             "id": "w2",
             "name": "Peel-and-Stick Name Tags",
             "price": 5.00,
-            "vendor_name": "Walmart Supply",
+            "vendor_name": "Walmart",
+            "vendor_id": "walmart",
             "trust_score": 95,
             "delivery_days": 0,
             "ai_score": 0.5,
@@ -140,15 +141,32 @@ def test_execute_payment_success(client):
     assert data["status"] == "success"
     assert "logs" in data
     assert len(data["logs"]) > 0
+    assert "transaction_hashes" in data
+    assert isinstance(data["transaction_hashes"], list)
 
 
-def test_execute_payment_empty_cart(client):
-    """Execute payment with empty cart still returns success."""
+def test_execute_payment_empty_cart_403(client):
+    """Execute payment with empty cart returns 403 Policy Violation."""
     response = client.post("/api/execute_payment", json=[])
-    assert response.status_code == 200
+    assert response.status_code == 403
     data = response.json()
-    assert data["status"] == "success"
-    assert data["logs"] == []
+    assert "detail" in data
+    assert "Policy" in data["detail"] or "policy" in data["detail"].lower()
+
+
+def test_execute_payment_unwhitelisted_merchant_403(client):
+    """Cart with non-whitelisted vendor_id returns 403 Policy Violation."""
+    cart = [
+        {
+            "id": "x1",
+            "name": "Unknown Vendor Item",
+            "price": 10.0,
+            "vendor_name": "Unknown",
+            "vendor_id": "unknown_merchant",
+        },
+    ]
+    response = client.post("/api/execute_payment", json=cart)
+    assert response.status_code == 403
 
 
 def test_orchestrate_invalid_body_validation(client):

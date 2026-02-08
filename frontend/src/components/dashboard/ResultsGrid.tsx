@@ -27,11 +27,14 @@ const RETAILER_LABELS: Record<string, string> = {
   tech_direct: "TechData",
 };
 
+const ARC_EXPLORER_BASE = "https://testnet.arcscan.app/tx/";
+
 export interface ResultsGridProps {
   options: ProcurementOption[];
   loading: boolean;
   executing: boolean;
   success: boolean;
+  transactionHashes?: string[];
   strategy: ProcurementStrategy;
   onStrategyChange: (s: ProcurementStrategy) => void;
   onExecute: () => void;
@@ -44,6 +47,7 @@ export function ResultsGrid({
   loading,
   executing,
   success,
+  transactionHashes = [],
   strategy,
   onStrategyChange,
   onExecute,
@@ -186,7 +190,7 @@ export function ResultsGrid({
                   Orders placed across retailers. Delivery tracking active.
                 </p>
 
-                <div className="w-full bg-black/50 rounded-lg p-4 font-mono text-xs text-left space-y-3 mb-8 border border-slate-800">
+                <div className="w-full bg-black/50 rounded-lg p-4 font-mono text-xs text-left space-y-3 mb-6 border border-slate-800">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Status</span>{" "}
                     <span className="text-emerald-400">Confirmed</span>
@@ -198,6 +202,31 @@ export function ResultsGrid({
                     </span>
                   </div>
                 </div>
+
+                {transactionHashes.length > 0 && (
+                  <div className="w-full mb-8">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      On-Chain Proof of Settlement
+                    </p>
+                    <div className="space-y-2">
+                      {transactionHashes.map((txHash, i) => (
+                        <a
+                          key={txHash}
+                          href={`${ARC_EXPLORER_BASE}${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block bg-slate-950/80 border border-indigo-500/30 rounded-lg px-3 py-2 font-mono text-[11px] text-indigo-300 hover:text-indigo-200 hover:border-indigo-500/50 truncate"
+                          title={txHash}
+                        >
+                          {transactionHashes.length > 1 ? `#${i + 1} ` : ""}{txHash}
+                        </a>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Arc Testnet · testnet.arcscan.app
+                    </p>
+                  </div>
+                )}
 
                 <button
                   onClick={onReset}

@@ -1,58 +1,94 @@
-# Flux OS
+# Flux OS: The Deterministic Agentic Commerce Architecture
 
-The cognitive layer for autonomous commerce. One intent and one budget → one optimized cart and one orchestrated payment across multiple retailers.
+**One intent. One budget. One optimized cart. One orchestrated settlement—with on-chain proof.**
 
-## Overview
+Flux OS is the cognitive layer for autonomous commerce: multi-retailer procurement, AI-driven ranking, simulated checkout, and **deterministic on-chain settlement** via the ArcFlow Safety Kernel and Circle’s Arc Testnet. No LLM ever touches a private key.
 
-Flux OS turns fragmented multi-retailer procurement into a single agentic workflow. Submit natural-language intent (e.g. *"hackathon kit: snacks, badges, prizes"*), set budget and strategy; the system parses intent, scouts Amazon, Walmart, and TechData, ranks by your constraints, and simulates a unified checkout with audit logs.
-
-<p align="center">
-  <img src="assets/dashboard.png" alt="Flux OS Dashboard" width="600"/>
-</p>
-
-## How It Works
-
-The agent follows a **Plan–Act–Verify** cycle:
-
-| Phase | Description |
-|-------|-------------|
-| **Plan** | GPT-4o parses intent into procurement categories; budget, deadline, and strategy are captured as constraints. |
-| **Act** | Orchestrator filters vendors by trust and budget, scores and ranks items, and applies simulated negotiation. |
-| **Verify** | Options are validated against Flux State; strategy changes trigger re-ranking; payment runs as a simulated fan-out. |
-
-<p align="center">
-  <img src="assets/cart.png" alt="Flux OS Cart" width="600"/>
-</p>
+---
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    subgraph User
+        A[User Intent + Budget]
+    end
+    subgraph Flux_OS["Flux OS"]
+        B[Gemini / GPT-4o Reasoning]
+        C[ArcFlow Safety Kernel]
+    end
+    subgraph Settlement
+        D[Circle Arc Testnet Settlement]
+    end
+    A --> B
+    B --> C
+    C --> D
+```
+
+| Stage | Description |
+|-------|-------------|
+| **User Intent** | Natural-language prompt (e.g. *"hackathon kit: snacks, badges, prizes"*) plus budget, deadline, and strategy. |
+| **Gemini / GPT-4o Reasoning** | Intent parsing, category extraction, and scoring across vendors (Amazon, Walmart, TechData). |
+| **ArcFlow Safety Kernel** | Deterministic policy gate: whitelisted merchants and max budget cap. No transaction is signed until checks pass. |
+| **Circle Arc Testnet Settlement** | USDC transfers executed on Arc Testnet; transaction hashes returned as **On-Chain Proof of Settlement**. |
+
+---
+
+## The Trust Gap — and How We Close It
+
+**Why we don’t give LLMs private keys**
+
+- LLMs are non-deterministic and can hallucinate targets, amounts, or recipients.
+- A single leaked or misused key can drain funds.
+- Compliance and audit require **reproducible, policy-bound** execution.
+
+**How the Deterministic Kernel solves it**
+
+- **No key in the model.** The AI only produces a *cart* (items, vendors, amounts). The backend holds the key.
+- **Policy before signing.** Every payment request is checked against:
+  - **WHITELISTED_MERCHANTS** — only pre-approved vendor IDs can receive funds.
+  - **MAX_BUDGET_CAP** — total cart value cannot exceed a hard cap.
+- If either check fails, the API returns **403 Policy Violation** and **no transaction is signed**.
+- Settlement runs in a dedicated service (ArcFlow Safety Kernel) with web3.py; transaction hashes are logged and returned to the frontend for transparent proof.
+
+---
+
+## Hackathon Compliance — Agentic Commerce
+
+| Requirement | Status | Implementation |
+|-------------|--------|----------------|
+| **Multi-retailer** | ✅ | Amazon, Walmart, TechData; vendor badges and trust scores in cart. |
+| **Ranking engine** | ✅ | AI scoring by strategy (cheapest / fastest / balanced); re-rank on strategy change. |
+| **Simulated checkout** | ✅ | Unified cart, delivery estimates, and simulated negotiation (e.g. agent-applied discounts). |
+| **Agentic flow** | ✅ | Plan → Act → Verify: intent → orchestration → ranking → payment with audit logs. |
+| **On-chain settlement** | ✅ | Circle Arc Testnet; USDC at `0x3600...`; RPC `https://rpc.testnet.arc.network`; Chain ID `5042002`. |
+| **Deterministic safety** | ✅ | Whitelist + budget cap enforced before any signing; 403 on policy violation. |
+| **Proof of settlement** | ✅ | Transaction hashes returned to frontend and displayed as “On-Chain Proof of Settlement” with explorer links. |
+
+---
+
+## Technical Specs
+
 | Layer | Technology |
 |-------|------------|
-| API | FastAPI (Python) |
-| Frontend | Next.js 14, TypeScript, Tailwind CSS, Framer Motion |
-| AI | OpenAI GPT-4o |
+| **API** | FastAPI (Python), uvicorn |
+| **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Framer Motion |
+| **AI** | OpenAI GPT-4o (intent parsing, scoring, reasoning) |
+| **Settlement** | web3.py, Circle USDC, **Arc Testnet** (RPC: `https://rpc.testnet.arc.network`, Chain ID: `5042002`, USDC: `0x3600000000000000000000000000000000000000`) |
+| **Safety** | ArcFlow Safety Kernel: `WHITELISTED_MERCHANTS`, `MAX_BUDGET_CAP`; 403 on violation |
 
-- **Backend:** `backend/main.py` — FastAPI app, health at `/`, routes under `/api`
-- **Services:** `services/ai_engine.py` (intent + scoring), `routers/procurement.py` (orchestration + payment)
-- **Schemas:** `models/schemas.py` — `UserRequest`, `ProcurementOption`
-
-## Flux State
-
-Every decision is evaluated against:
-
-- **Budget** — Hard cap; only items within budget are considered
-- **Speed** — Delivery days feed the ranking engine
-- **Strategy** — Cheapest, fastest, or balanced; drives re-ranking and AI reasoning
-- **Vendor trust** — Vendors below threshold are excluded; score shown in cart
+---
 
 ## Quick Start
 
 ```bash
 # Backend
 cd backend
-python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 export OPENAI_API_KEY=sk-your-key
+# Optional: real Arc Testnet settlement (otherwise sandbox mode with mock tx hashes)
+export PAYMENT_PRIVATE_KEY=0x-your-testnet-key
 uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
 # Frontend (separate terminal)
@@ -65,6 +101,9 @@ npm install && npm run dev
 | API | http://127.0.0.1:8001 |
 | API docs | http://127.0.0.1:8001/docs |
 | Dashboard | http://localhost:3000 |
+| Arc Testnet Explorer | https://testnet.arcscan.app |
+
+---
 
 ## API
 
@@ -72,7 +111,9 @@ npm install && npm run dev
 |--------|----------|-------------|
 | GET | `/` | Health check |
 | POST | `/api/orchestrate` | Orchestration; body: `UserRequest`; returns `options` + `telemetry` |
-| POST | `/api/execute_payment` | Simulated payment fan-out; body: cart; returns `status` + `logs` |
+| POST | `/api/execute_payment` | ArcFlow settlement; body: cart (with `vendor_id` per item); returns `status`, `logs`, `transaction_hashes`. **403** if policy (whitelist or budget cap) fails. |
+
+---
 
 ## Project Structure
 
@@ -83,12 +124,16 @@ arcflow-commerce-agent/
 │   ├── main.py
 │   ├── models/schemas.py
 │   ├── routers/procurement.py
-│   ├── services/ai_engine.py
+│   ├── services/
+│   │   ├── ai_engine.py
+│   │   └── payment_solver.py   # ArcFlow Safety Kernel + Arc Testnet
 │   ├── utils/logger.py
 │   └── requirements.txt
 ├── frontend/
 └── README.md
 ```
+
+---
 
 ## License
 
