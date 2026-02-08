@@ -12,10 +12,11 @@ if os.path.exists(".env"):
 
 setup_logging()
 
+# Exported as `app` for Vercel serverless (builds[].src → main:app)
 app = FastAPI(
     title="Flux OS API",
-    description="Agentic Commerce Backend",
-    version="1.0.0"
+    description="Cognitive Layer for Autonomous Commerce",
+    version="1.0.0",
 )
 
 app.add_middleware(

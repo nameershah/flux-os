@@ -13,22 +13,23 @@ if not _api_key:
     logger.warning("OPENAI_API_KEY not found in environment")
 _client = OpenAI(api_key=_api_key) if _api_key else None
 
-# Display name for telemetry (judges see real model)
+# Cognitive layer: display name for telemetry (judges see real model)
 LLM_MODEL_DISPLAY = "gpt-4o-2024"
 LLM_MODEL_API = "gpt-4o-mini"  # cost-effective; swap to gpt-4o for production
+COGNITIVE_REQUEST_TIMEOUT_SEC = 55  # under 60s Vercel limit
 
 
 def parse_intent_ai(prompt: str) -> tuple[list[str], dict]:
-    """Extract procurement categories from user prompt using OpenAI.
-    Returns (categories, telemetry) with latency and token usage.
+    """Extract procurement categories from user prompt (Cognitive Layer).
+    Returns (categories, cognitive_telemetry) with latency and token usage.
     """
-    telemetry = {"model": LLM_MODEL_DISPLAY, "latency_ms": 0, "tokens_used": 0}
+    cognitive_telemetry = {"model": LLM_MODEL_DISPLAY, "latency_ms": 0, "tokens_used": 0}
 
     if not _client:
         logger.warning("OpenAI client not configured; using fallback categories")
-        telemetry["latency_ms"] = 120  # simulated for demo
-        telemetry["tokens_used"] = 0
-        return ["snacks", "badges", "adapters"], telemetry
+        cognitive_telemetry["latency_ms"] = 120
+        cognitive_telemetry["tokens_used"] = 0
+        return ["snacks", "badges", "adapters"], cognitive_telemetry
 
     try:
         t0 = time.perf_counter()
@@ -42,25 +43,31 @@ def parse_intent_ai(prompt: str) -> tuple[list[str], dict]:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
+            timeout=COGNITIVE_REQUEST_TIMEOUT_SEC,
         )
         elapsed = (time.perf_counter() - t0) * 1000
         usage = getattr(response, "usage", None)
         tokens = (usage.prompt_tokens + usage.completion_tokens) if usage else 0
 
-        telemetry["latency_ms"] = round(elapsed, 0)
-        telemetry["tokens_used"] = tokens
+        cognitive_telemetry["latency_ms"] = round(elapsed, 0)
+        cognitive_telemetry["tokens_used"] = tokens
 
         content = (
             response.choices[0].message.content.replace("```json", "").replace("```", "").strip()
         )
-        return json.loads(content), telemetry
+        parsed = json.loads(content)
+        if isinstance(parsed, str):
+            parsed = [parsed]
+        elif not isinstance(parsed, list):
+            parsed = list(parsed) if parsed else []
+        return parsed, cognitive_telemetry
     except Exception as e:
-        logger.exception("AI intent parsing failed: %s", e)
-        return ["snacks", "badges", "adapters"], telemetry
+        logger.exception("Cognitive intent parsing failed: %s", e)
+        return ["snacks", "badges", "adapters"], cognitive_telemetry
 
 
 def calculate_score(item: dict, strategy: str) -> float:
-    """Compute a normalized score for an item based on price, delivery, and strategy."""
+    """Compute a normalized Flux score for an item (price, delivery, strategy)."""
     price = item.get("price", item.get("original_price", 0))
     norm_price = price / 200.0
     norm_delivery = item["delivery_days"] / 7.0
@@ -74,7 +81,7 @@ def calculate_score(item: dict, strategy: str) -> float:
 
 
 def derive_ai_reason(item: dict, candidates: list, strategy: str) -> str:
-    """Generate human-readable AI reasoning for why this item was chosen."""
+    """Generate human-readable Cognitive OS reasoning for item selection."""
     if strategy == "cheapest":
         cheapest = min(candidates, key=lambda c: c.get("price", c.get("original_price", 9999)))
         if item.get("id") == cheapest.get("id"):

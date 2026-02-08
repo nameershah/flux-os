@@ -9,7 +9,7 @@ def setup_logging(
 ) -> None:
     """Configure application logging with a standard format."""
     if format_string is None:
-        format_string = "%(asctime)s | BLOCK_HASH: %(process)d | %(levelname)s | %(name)s | %(message)s"
+        format_string = "%(asctime)s | FLUX_BLOCK: %(process)d | %(levelname)s | %(name)s | %(message)s"
 
     logging.basicConfig(
         level=level,
