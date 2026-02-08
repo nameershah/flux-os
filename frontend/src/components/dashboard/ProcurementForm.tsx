@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, DollarSign, Calendar } from "lucide-react";
+import { Search, DollarSign, Calendar, Loader2 } from "lucide-react";
 import type { ProcurementStrategy } from "@/types";
 
 export interface ProcurementFormProps {
@@ -124,11 +124,11 @@ export function ProcurementForm({
           }`}
         >
           {loading ? (
-            <span className="animate-spin">⏳</span>
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Search className="w-4 h-4" />
           )}
-          {loading ? "AGENT THINKING..." : "INITIATE"}
+          {loading ? "Processing..." : "Run orchestration"}
         </button>
       </div>
     </div>

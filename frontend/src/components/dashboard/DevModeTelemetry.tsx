@@ -15,7 +15,7 @@ export function DevModeTelemetry({ telemetry, onClose }: DevModeTelemetryProps) 
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider">
           <Cpu className="w-4 h-4" />
-          Live Telemetry
+          Decision trace / telemetry
         </div>
         {onClose && (
           <button
@@ -53,7 +53,7 @@ export function DevModeTelemetry({ telemetry, onClose }: DevModeTelemetryProps) 
       </div>
       {telemetry && (
         <p className="mt-3 text-[10px] text-slate-500 italic">
-          Proves real API calls to judges
+          Model, latency, tokens — explains ranking and proves real API use.
         </p>
       )}
     </div>

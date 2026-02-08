@@ -1,14 +1,14 @@
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv())
-
-import json
 import os
+import json
 import time
 import google.generativeai as genai
 from openai import OpenAI
-from groq import Groq  # New high-speed inference engine
+from groq import Groq
+from dotenv import load_dotenv, find_dotenv
 from utils.logger import get_logger
 
+# 1. Force load environment variables
+load_dotenv(find_dotenv())
 logger = get_logger(__name__)
 
 # --- Initialization ---
@@ -16,64 +16,68 @@ openai_key = os.environ.get("OPENAI_API_KEY")
 gemini_key = os.environ.get("GEMINI_API_KEY")
 groq_key = os.environ.get("GROQ_API_KEY")
 
-# Primary High-Speed Client (Groq)
 _groq_client = Groq(api_key=groq_key) if groq_key else None
-# Fallback/Secondary Client (OpenAI)
 _openai_client = OpenAI(api_key=openai_key) if openai_key else None
 
+# Gemini 3 Flash: document vision (image/PDF). Intent from text uses Groq/OpenAI.
+GEMINI_MODEL_ID = "gemini-3-flash-preview"
 if gemini_key:
-    genai.configure(api_key=gemini_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    try:
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel(GEMINI_MODEL_ID)
+        logger.info("Gemini engine ready: %s", GEMINI_MODEL_ID)
+    except Exception as e:
+        logger.error("Gemini init error: %s", e)
+        model = None
 else:
-    logger.warning("GEMINI_API_KEY not found")
     model = None
 
-# Telemetry constants
-LLM_MODEL_DISPLAY = "Llama-3.3-70b (via Groq)"
+LLM_MODEL_DISPLAY = "Llama-3.3-70b (Groq LPU)"
 LLM_MODEL_API = "llama-3.3-70b-versatile" 
-COGNITIVE_REQUEST_TIMEOUT_SEC = 30
 
 def parse_intent_ai(prompt: str) -> tuple[list[str], dict]:
     """Extract categories using Groq's LPU for sub-second latency."""
     cognitive_telemetry = {"model": LLM_MODEL_DISPLAY, "latency_ms": 0, "tokens_used": 0}
-    
-    # Check if we can use Groq, otherwise fallback to OpenAI
     client = _groq_client or _openai_client
-    if not client:
-        return ["snacks", "badges", "adapters"], cognitive_telemetry
+    if not client: return ["snacks", "badges"], cognitive_telemetry
 
     try:
         t0 = time.perf_counter()
-        
-        # Groq is OpenAI-compatible, so the syntax remains almost identical
         response = client.chat.completions.create(
             model=LLM_MODEL_API if _groq_client else "gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Return a JSON list of procurement categories (snacks, badges, adapters, prizes) based on the user prompt. Example: ['snacks', 'prizes']"},
+                {"role": "system", "content": "Return a JSON list of categories: snacks, badges, adapters, prizes. Format: {'categories': []}"},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            response_format={"type": "json_object"} if _groq_client else None
+            response_format={"type": "json_object"}
         )
-        
         elapsed = (time.perf_counter() - t0) * 1000
-        content = response.choices[0].message.content.replace("```json", "").replace("```", "").strip()
+        content = response.choices[0].message.content
         parsed_json = json.loads(content)
-        
-        # Handle different possible JSON structures from LLM
-        if isinstance(parsed_json, dict) and "categories" in parsed_json:
-            categories = parsed_json["categories"]
-        elif isinstance(parsed_json, list):
-            categories = parsed_json
-        else:
-            categories = ["snacks", "badges"]
-
+        categories = parsed_json.get("categories", ["snacks", "badges"])
         cognitive_telemetry["latency_ms"] = round(elapsed, 0)
         return categories, cognitive_telemetry
-
     except Exception as e:
-        logger.error(f"Groq/OpenAI parsing failed: {e}")
+        logger.error(f"Groq logic failed: {e}")
         return ["snacks", "badges"], cognitive_telemetry
+
+async def extract_intent_from_doc(file_bytes: bytes, mime_type: str) -> str:
+    """Extract procurement intent from image/PDF via Gemini vision API."""
+    if not model:
+        logger.warning("No Gemini model configured; using fallback intent.")
+        return "Procurement: snacks, badges, adapters, prizes for hackathon."
+    try:
+        response = model.generate_content([
+            {"mime_type": mime_type, "data": file_bytes},
+            "Extract items and quantities from this document. Return one short sentence summary suitable for a shopping list.",
+        ])
+        if response and response.text:
+            return response.text.strip()
+        return "Procurement: snacks, badges, adapters, prizes for hackathon."
+    except Exception as e:
+        logger.error("Gemini vision API error: %s", e)
+        return "Procurement: snacks, badges, adapters, prizes for hackathon."
 
 def calculate_score(item: dict, strategy: str) -> float:
     price = item.get("price", 100)
@@ -86,17 +90,3 @@ def derive_ai_reason(item: dict, candidates: list, strategy: str) -> str:
     if strategy == "cheapest": return "Best Price"
     if strategy == "fastest": return "Fastest Delivery"
     return "Balanced Selection"
-
-async def extract_intent_from_doc(file_bytes: bytes, mime_type: str) -> str:
-    """Uses Gemini to turn images/PDFs into a text prompt."""
-    if not model:
-        return "Generic request"
-    
-    prompt = "Extract the procurement items and quantities from this document. Return only a single sentence describing the full intent."
-    
-    # We use Gemini here because Groq doesn't support Vision/Multimodal yet
-    response = model.generate_content([
-        {'mime_type': mime_type, 'data': file_bytes},
-        prompt
-    ])
-    return response.text

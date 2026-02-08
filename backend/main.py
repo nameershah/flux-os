@@ -8,11 +8,16 @@ from utils.logger import setup_logging
 # Load Environment Variables
 load_dotenv(find_dotenv())
 
-# Boot logs for terminal verification
-if not os.getenv("OPENAI_API_KEY") or not os.getenv("GEMINI_API_KEY"):
-    print("⚠️ WARNING: Missing API Keys (OpenAI or Gemini) in .env!")
-else:
-    print("✅ Flux OS: AI Engine Keys Loaded Successfully.")
+# Boot: at least one AI provider required for intent parsing (Groq/OpenAI) and document vision (Gemini)
+_has_openai = bool(os.getenv("OPENAI_API_KEY"))
+_has_gemini = bool(os.getenv("GEMINI_API_KEY"))
+_has_groq = bool(os.getenv("GROQ_API_KEY"))
+if not (_has_openai or _has_groq):
+    print("[WARN] No OPENAI_API_KEY or GROQ_API_KEY; intent parsing will use fallback categories.")
+if not _has_gemini:
+    print("[WARN] No GEMINI_API_KEY; document upload will use fallback intent.")
+if (_has_openai or _has_groq) and _has_gemini:
+    print("[OK] Flux OS: AI engines configured.")
 
 setup_logging()
 

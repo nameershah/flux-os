@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   DollarSign,
   Trophy,
+  Tag,
+  Brain,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ProcurementOption, ProcurementStrategy } from "@/types";
@@ -257,12 +259,12 @@ function CartItemCard({
   const retailerLabel = RETAILER_LABELS[option.vendor_id] || option.vendor_name;
   const tooltipReason = option.reason || `Chosen because it optimizes ${strategy} within your constraints.`;
 
-  const aiReasonIcon =
+  const AiReasonIcon =
     option.ai_reason === "Best Price"
-      ? "🏆"
+      ? Trophy
       : option.ai_reason === "Fastest Delivery"
-        ? "⚡"
-        : "🧠";
+        ? Zap
+        : Brain;
 
   return (
     <motion.div
@@ -284,7 +286,7 @@ function CartItemCard({
         </span>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-            {aiReasonIcon} {option.ai_reason}
+            <AiReasonIcon className="w-3 h-3" /> {option.ai_reason}
           </span>
           <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
             <ShieldCheck className="w-3 h-3" /> {option.trust_score}%
@@ -318,8 +320,8 @@ function CartItemCard({
               {(() => {
                 const pct = Math.round(((option.original_price! - option.price) / option.original_price!) * 100);
                 return (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                    🏷️ Agent Negotiated -{pct}%
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                    <Tag className="w-3 h-3" /> Negotiated -{pct}%
                   </span>
                 );
               })()}
